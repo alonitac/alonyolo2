@@ -1,0 +1,94 @@
+# This workflow provides automated task testing and personalized feedback.
+# ⚠️ PLEASE DO NOT MODIFY THIS JOB
+# This job downloads the school tests for your assignment and leaves review comments on your PR.
+# The tests are saved to /tmp/pr-analysis and will be used in the next job.
+# Modifying this job might break the workflow functionality.
+
+# You may update the version tag (@v1) to use a different release.
+# See available versions: https://github.com/exit0-io/pr-feedback-action/releases
+
+
+name: PR Analysis
+
+on:
+  pull_request:
+    branches:
+      - main
+    
+  issue_comment:
+    types: 
+      - created
+
+jobs:
+  # ⚠️ PLEASE DO NOT MODIFY THIS JOB
+  Prepare:    
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      task-ids: ${{ steps.prepare-step.outputs.task-ids }}
+    steps:
+    - name: Prepare PR Evaluation
+      id: prepare-step
+      uses: exit0-io/pr-evaluation-action/prepare@v1
+
+  # ⚠️ PLEASE DO NOT MODIFY THIS JOB
+  Review:  
+    if: |
+        github.event.issue.pull_request &&
+        github.event.comment.body == '/review'  
+    runs-on: ubuntu-latest
+    needs: Prepare
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+    - name: Review PR
+      uses: exit0-io/pr-evaluation-action/review@v1
+      with:
+        task-ids: ${{ needs.Prepare.outputs.task-ids }}
+
+  # 🧐 YOU MIGHT NEED TO EDIT THIS JOB
+  Test:
+    runs-on: ubuntu-latest
+    needs: Prepare
+    steps:
+    - name: Checkout Repository Code
+      uses: actions/checkout@v4
+
+    - name: Checkout School Checks Repository
+      uses: actions/checkout@v4
+      with:
+        repository: exit0-io/YoloServiceSchoolChecks
+        path: school-checks
+        fetch-depth: 1
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        pip install -r torch-requirements.txt
+        pip install -r requirements.txt
+
+        pip install pytest
+
+    - name: Run School Checks
+      shell: bash
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      run: |
+        TASK_IDS="${{ needs.Prepare.outputs.task-ids }}"
+        
+        for task_id in $TASK_IDS; do
+          if [ -d "school-checks/$task_id" ]; then
+            echo "Running tests for task: $task_id"
+            pytest school-checks/$task_id/
+          fi
+        done
