@@ -19,3 +19,4 @@ jobs:
       uses: exit0-io/pr-evaluation-action/ai-review@v1
       with:
         project: polybot-dev
+        debug: true
