@@ -1,0 +1,21 @@
+name: Pull Request AI Review
+
+on:
+  issue_comment:
+    types: 
+      - created
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  Review:  
+    if: github.event.issue.pull_request && github.event.comment.body == '/review'  
+    runs-on: ubuntu-latest
+    steps:
+    - name: Review PR
+      uses: exit0-io/pr-evaluation-action/ai-review@v1
+      with:
+        projeect: polybot-dev
