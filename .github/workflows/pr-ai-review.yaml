@@ -18,4 +18,4 @@ jobs:
     - name: Review PR
       uses: exit0-io/pr-evaluation-action/ai-review@v1
       with:
-        projeect: polybot-dev
+        project: polybot-dev
